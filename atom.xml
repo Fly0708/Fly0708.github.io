@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2021-08-09T06:59:24.887Z</updated>
+  <updated>2021-08-16T02:59:37.991Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>容器类</title>
+    <link href="http://example.com/2021/08/16/%E5%AE%B9%E5%99%A8%E7%B1%BB/"/>
+    <id>http://example.com/2021/08/16/%E5%AE%B9%E5%99%A8%E7%B1%BB/</id>
+    <published>2021-08-16T02:59:03.000Z</published>
+    <updated>2021-08-16T02:59:37.991Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="待："><a href="#待：" class="headerlink" title="待："></a>待：</h2><ul><li>HashMap多线程的死循环问题，以及ConcurrentHashMap 是怎么解决的</li><li>HashMap源码重新阅读</li><li>Cas锁</li></ul><h2 id="记："><a href="#记：" class="headerlink" title="记："></a>记：</h2><h3 id="ConcurrentHashMap-和-Hashtable-的区别"><a href="#ConcurrentHashMap-和-Hashtable-的区别" class="headerlink" title=" ConcurrentHashMap 和 Hashtable 的区别"></a><a href="https://snailclimb.gitee.io/javaguide/#/docs/java/collection/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98?id=_149-concurrenthashmap-%E5%92%8C-hashtable-%E7%9A%84%E5%8C%BA%E5%88%AB"> ConcurrentHashMap 和 Hashtable 的区别</a></h3><ul><li>底层数据结构不同， ConcurrentHashMap在JDK1.8的时候跟HashMap一样，同样采用了 数组 + 链表/红黑二叉树的。Hashtable采用了数组 + 链表的结构。</li><li>实现线程安全的方式，Hashtable使用<code>synchronized</code>来保证线程安全。 ConcurrentHashMap 在JDK1.8之前，采用对桶数组分隔片那段的操作，每一把锁只锁一部分数据。多线程访问容器里不同数据段的数据就不会发生锁竞争。而在JDK1.8的时候，抛弃了<code>segment</code>的概念，而是采用Node数组+链表+红黑树的数据结构来实现，并发控制使用<code>synchronized</code>和CAS实现。<code>synchronized</code> 只锁定当前链表或红黑二叉树的首节点，这样只要 hash 不冲突，就不会产生并发，效率又提升 N 倍。</li></ul><h2 id="CAS"><a href="#CAS" class="headerlink" title="CAS"></a>CAS</h2><p>cas 的 ABA问题可以通过 <code>AtomicStampedReference </code> 解决</p><p>参考：<a href="https://objcoding.com/2018/11/29/cas/">Java并发之CAS原理分析</a></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h2 id=&quot;待：&quot;&gt;&lt;a href=&quot;#待：&quot; class=&quot;headerlink&quot; title=&quot;待：&quot;&gt;&lt;/a&gt;待：&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;HashMap多线程的死循环问题，以及ConcurrentHashMap 是怎么解决的&lt;/li&gt;
+&lt;li&gt;HashMap源码重新</summary>
+      
+    
+    
+    
+    
+    <category term="java容器 CAS" scheme="http://example.com/tags/java%E5%AE%B9%E5%99%A8-CAS/"/>
+    
+  </entry>
   
   <entry>
     <title>SpringCloud系列-雪崩</title>
