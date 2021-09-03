@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>JVM | 黄大虾</title>
+  <meta name="description" content="JVM GC相关Java垃圾回收机制 当对象没有被其他对象引用的时候，则会判定为垃圾  判定对象是否为垃圾的算法：判断对象的引用数量 通过判断对象的引用数量来决定对象是否可以被回收 每个对象实例都会有一个引用计数器，被引用则+1，完成引用则-1  优点：执行效率高，程序执行受影响较小 缺点：无法检测出循环引用的情况，导致内存泄漏 可达性分析算法 通过判断对象的引用链是否可达来决定对象是否可以被回收">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM">
+<meta property="og:url" content="http://example.com/2021/09/03/JVM/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JVM GC相关Java垃圾回收机制 当对象没有被其他对象引用的时候，则会判定为垃圾  判定对象是否为垃圾的算法：判断对象的引用数量 通过判断对象的引用数量来决定对象是否可以被回收 每个对象实例都会有一个引用计数器，被引用则+1，完成引用则-1  优点：执行效率高，程序执行受影响较小 缺点：无法检测出循环引用的情况，导致内存泄漏 可达性分析算法 通过判断对象的引用链是否可达来决定对象是否可以被回收">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://i.loli.net/2021/08/22/gvL9C4aelNzrjdA.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/22/rkzcOonUsjbRBi9.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/22/x4eTzCGly9Z1h75.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/22/VmBACxhGDZP5O7l.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/23/yzvIPKZcge7RApw.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/23/JrGhXST4utwZO8e.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/23/zOJ2N45PbBkLapU.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/23/ExqaIM5BZdin681.png">
+<meta property="article:published_time" content="2021-09-03T02:04:17.000Z">
+<meta property="article:modified_time" content="2021-09-03T02:05:17.026Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="jvm">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/08/22/gvL9C4aelNzrjdA.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://example.com/2021/09/03/JVM/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+
+<body class="main-center theme-black# 主题颜色 theme-black theme-blue theme-green theme-purple" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/Fly0708" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">黄大虾</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Java Python Javascript</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> 山东济南</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SpringCloud/" rel="tag">SpringCloud</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java%E5%AE%B9%E5%99%A8-CAS/" rel="tag">java容器 CAS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jvm/" rel="tag">jvm</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Redis/" style="font-size: 13px;">Redis</a> <a href="/tags/SpringCloud/" style="font-size: 14px;">SpringCloud</a> <a href="/tags/java%E5%AE%B9%E5%99%A8-CAS/" style="font-size: 13px;">java容器 CAS</a> <a href="/tags/jvm/" style="font-size: 13px;">jvm</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/08/">August 2021</a><span class="archive-list-count">7</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2021/09/03/JVM/" class="title">JVM</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2021-09-03T02:04:17.000Z" itemprop="datePublished">2021-09-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2021/08/17/Redis/" class="title">Redis</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2021-08-17T01:59:34.000Z" itemprop="datePublished">2021-08-17</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2021/08/16/%E5%AE%B9%E5%99%A8%E7%B1%BB/" class="title">容器类</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2021-08-16T02:59:03.000Z" itemprop="datePublished">2021-08-16</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2021/08/09/SpringCloud%E7%B3%BB%E5%88%97-%E9%9B%AA%E5%B4%A9/" class="title">SpringCloud系列-雪崩</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2021-08-09T06:56:05.000Z" itemprop="datePublished">2021-08-09</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2021/08/09/SpringCloud%E7%B3%BB%E5%88%97-%E7%BD%91%E5%85%B3/" class="title">SpringCloud系列-网关</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2021-08-09T06:56:00.000Z" itemprop="datePublished">2021-08-09</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-JVM" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JVM
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2021/09/03/JVM/" class="article-date">
+	  <time datetime="2021-09-03T02:04:17.000Z" itemprop="datePublished">2021-09-03</time>
+	</a>
+</span>
+        
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/jvm/" rel="tag">jvm</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2021/09/03/JVM/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="JVM-GC相关"><a href="#JVM-GC相关" class="headerlink" title="JVM GC相关"></a>JVM GC相关</h1><h2 id="Java垃圾回收机制"><a href="#Java垃圾回收机制" class="headerlink" title="Java垃圾回收机制"></a>Java垃圾回收机制</h2><blockquote>
+<p>当对象没有被其他对象引用的时候，则会判定为垃圾</p>
+</blockquote>
+<h3 id="判定对象是否为垃圾的算法："><a href="#判定对象是否为垃圾的算法：" class="headerlink" title="判定对象是否为垃圾的算法："></a>判定对象是否为垃圾的算法：</h3><h5 id="判断对象的引用数量"><a href="#判断对象的引用数量" class="headerlink" title="判断对象的引用数量"></a>判断对象的引用数量</h5><ul>
+<li>通过判断对象的引用数量来决定对象是否可以被回收</li>
+<li>每个对象实例都会有一个引用计数器，被引用则+1，完成引用则-1</li>
+</ul>
+<p>优点：执行效率高，程序执行受影响较小</p>
+<p>缺点：无法检测出循环引用的情况，导致内存泄漏</p>
+<h5 id="可达性分析算法"><a href="#可达性分析算法" class="headerlink" title="可达性分析算法"></a>可达性分析算法</h5><blockquote>
+<p>通过判断对象的引用链是否可达来决定对象是否可以被回收，通过一系列的GC Root节点为起点进行搜索，如果一个对象不存在所有的引用链上，则是不可达的。</p>
+</blockquote>
+<p>可以作为GC Root的对象：</p>
+<ul>
+<li>虚拟机栈中引用的对象(栈帧中的本地变量表)</li>
+<li>方法区中的常用引用的对象</li>
+<li> 方法区中的类静态属性引用的对象</li>
+<li>本地方法栈中JNI（Native方法）的引用对象</li>
+<li>活跃线程的引用对象</li>
+</ul>
+<h2 id="Java垃圾回收之回收算法"><a href="#Java垃圾回收之回收算法" class="headerlink" title="Java垃圾回收之回收算法"></a>Java垃圾回收之回收算法</h2><h3 id="标记-清除算法-Mark-and-Sweep"><a href="#标记-清除算法-Mark-and-Sweep" class="headerlink" title="标记-清除算法(Mark and Sweep)"></a>标记-清除算法(Mark and Sweep)</h3><p>标记：从集合进行扫描，对根集合进行扫描，对存活的对象进行标记</p>
+<p>清除：对堆内存从头到尾进行线性遍历，回收不可达对象内存</p>
+<p>缺点：容易产生碎片化，因为标记清楚时不会对对象进行移动等操作，可能会导致在后期碎片化严重时，无法分配空间</p>
+<h3 id="复制算法（Copying）"><a href="#复制算法（Copying）" class="headerlink" title="复制算法（Copying）"></a>复制算法（Copying）</h3><ol>
+<li>分为对象面和空闲面</li>
+<li>对象在对象面上创建</li>
+<li>存活的对象被从对象面复制到空闲面</li>
+<li>将对象面的所有对象内存清除</li>
+</ol>
+<p>适合对象存活率低的场景，比如jvm的年轻代，因为会将对象进行移动，也不会产生碎片化的情况</p>
+<p><img src="https://i.loli.net/2021/08/22/gvL9C4aelNzrjdA.png" alt="image-20210822224631547"></p>
+<h3 id="标记-整理算法（Compacting）"><a href="#标记-整理算法（Compacting）" class="headerlink" title="标记-整理算法（Compacting）"></a>标记-整理算法（Compacting）</h3><ul>
+<li>标记：从根集合进行扫描，对存活的对象进行标记</li>
+<li>清除：移动所有存活的对象，且按照内存地址次序依次排列，然后将末端内存地址以后的内存全部回收。</li>
+</ul>
+<p><img src="https://i.loli.net/2021/08/22/rkzcOonUsjbRBi9.png" alt="image-20210822225121483"></p>
+<h3 id="分代收集算法（Generational-Collector）"><a href="#分代收集算法（Generational-Collector）" class="headerlink" title="分代收集算法（Generational Collector）"></a>分代收集算法（Generational Collector）</h3><ul>
+<li>垃圾回收算法的组合拳</li>
+<li>按照对象生命周期的不同划分区域以采用不同的垃圾回收算法</li>
+<li>目的：提高JVM的回收效率</li>
+</ul>
+<p><img src="https://i.loli.net/2021/08/22/x4eTzCGly9Z1h75.png" alt="image-20210822225342123"></p>
+<h2 id="GC的分类"><a href="#GC的分类" class="headerlink" title="GC的分类"></a>GC的分类</h2><ul>
+<li>Minor GC</li>
+<li>Full GC</li>
+</ul>
+<p><strong>年轻代：尽可能快速地收集那些生命周期短的现象</strong></p>
+<ul>
+<li>Eden区</li>
+<li>两个Survivor区</li>
+</ul>
+<p><img src="https://i.loli.net/2021/08/22/VmBACxhGDZP5O7l.png" alt="image-20210822225636094"></p>
+<p><img src="https://i.loli.net/2021/08/23/yzvIPKZcge7RApw.png" alt="image-20210822230304513"></p>
+<p><img src="https://i.loli.net/2021/08/23/JrGhXST4utwZO8e.png" alt="image-20210822230539301"></p>
+<h2 id="Java垃圾回收之新生代垃圾收集器"><a href="#Java垃圾回收之新生代垃圾收集器" class="headerlink" title="Java垃圾回收之新生代垃圾收集器"></a>Java垃圾回收之新生代垃圾收集器</h2><h3 id="Stop-the-World"><a href="#Stop-the-World" class="headerlink" title="Stop-the-World"></a>Stop-the-World</h3><ul>
+<li>JVM由于要执行GC而停止了应用程序的执行</li>
+<li>任何一种GC算法中都会发生</li>
+<li>多数GC优化通过减少Stop-the-World发生的时间来提高程序性能</li>
+</ul>
+<p><img src="https://i.loli.net/2021/08/23/zOJ2N45PbBkLapU.png" alt="image-20210823093821146"></p>
+<p><img src="https://i.loli.net/2021/08/23/ExqaIM5BZdin681.png" alt="image-20210823093959982"></p>
+<p>虚引用不能通过Reference的get()是不是null来判断是否被回收，只能通过引用队列的方式进行判断，因此虚引用的构造函数是有引用队列参数的。</p>
+<h3 id="引用队列的使用示例："><a href="#引用队列的使用示例：" class="headerlink" title="引用队列的使用示例："></a>引用队列的使用示例：</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">NormalObject</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">NormalObject</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;NormalObj执行finalize()&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WeakNormalObjectReference</span> <span class="keyword">extends</span> <span class="title">WeakReference</span>&lt;<span class="title">NormalObject</span>&gt; </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">WeakNormalObjectReference</span><span class="params">(NormalObject referent, ReferenceQueue&lt;? <span class="keyword">super</span> NormalObject&gt; q)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(referent, q);</span><br><span class="line">        <span class="keyword">this</span>.name = referent.getName();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;WeakNormalObjectReference执行finalize() name: &quot;</span> + <span class="keyword">this</span>.name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">WeakRefTest</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        ReferenceQueue&lt;NormalObject&gt; referenceQueue = <span class="keyword">new</span> ReferenceQueue&lt;&gt;();</span><br><span class="line">        List&lt;WeakReference&lt;NormalObject&gt;&gt; weakObjList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        weakObjList.add(<span class="keyword">new</span> WeakNormalObjectReference(<span class="keyword">new</span> NormalObject(<span class="string">&quot;huang&quot;</span>), referenceQueue));</span><br><span class="line">        weakObjList.add(<span class="keyword">new</span> WeakNormalObjectReference(<span class="keyword">new</span> NormalObject(<span class="string">&quot;qi&quot;</span>), referenceQueue));</span><br><span class="line">        weakObjList.add(<span class="keyword">new</span> WeakNormalObjectReference(<span class="keyword">new</span> NormalObject(<span class="string">&quot;chang&quot;</span>), referenceQueue));</span><br><span class="line">        System.out.println(<span class="string">&quot;referenceQueue.size = &quot;</span> + referenceQueue.poll());</span><br><span class="line"></span><br><span class="line">        System.gc();</span><br><span class="line"></span><br><span class="line">        Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        <span class="keyword">for</span> (WeakReference&lt;NormalObject&gt; weakReference : weakObjList) &#123;</span><br><span class="line">            WeakNormalObjectReference normalObjectReference = (WeakNormalObjectReference) weakReference;</span><br><span class="line">            System.out.println(<span class="string">&quot;引用队列元素name： &quot;</span> + normalObjectReference.getName());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">referenceQueue.size = null</span><br><span class="line">NormalObj执行finalize()</span><br><span class="line">NormalObj执行finalize()</span><br><span class="line">NormalObj执行finalize()</span><br><span class="line">引用队列元素name： huang</span><br><span class="line">引用队列元素name： qi</span><br><span class="line">引用队列元素name： chang</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://example.com/2021/09/03/JVM/" title="JVM" target="_blank" rel="external">http://example.com/2021/09/03/JVM/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/Fly0708" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/Fly0708" target="_blank"><span class="text-dark">黄大虾</span><small class="ml-1x">Java Python Javascript</small></a></h3>
+        <div>None。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    
+    <li class="next">
+      <a href="/2021/08/17/Redis/" title="Redis"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
